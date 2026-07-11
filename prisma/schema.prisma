@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String          @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String          @unique
+  password         String
+  phone            String
+  role             String
+  profileImage     String?
+  address          String
+  city             String
+  state            String?
+  zipCode          String?
+  country          String
+  bio              String?
+  isVerified       Boolean         @default(false)
+  isBanned         Boolean         @default(false)
+  ratingsAverage   Float           @default(0)
+  ratingsCount     Int             @default(0)
+  bankDetails      Json?
+  properties       Property[]      @relation("LandlordProperties")
+  tenantRequests   RentalRequest[] @relation("TenantRequests")
+  landlordRequests RentalRequest[] @relation("LandlordRequests")
+  paymentsTenant   Payment[]       @relation("PaymentsAsTenant")
+  paymentsLandlord Payment[]       @relation("PaymentsAsLandlord")
+  reviewsTenant    Review[]        @relation("ReviewsAsTenant")
+  reviewsLandlord  Review[]        @relation("ReviewsAsLandlord")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  description String
+  icon        String?
+  image       String?
+  isActive    Boolean    @default(true)
+  properties  Property[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Property {
+  id                 String          @id @default(uuid())
+  title              String
+  description        String
+  landlord           User            @relation("LandlordProperties", fields: [landlordId], references: [id])
+  landlordId         String
+  category           Category        @relation(fields: [categoryId], references: [id])
+  categoryId         String
+  address            String
+  city               String
+  state              String?
+  zipCode            String?
+  country            String
+  latitude           Float?
+  longitude          Float?
+  priceMonthly       Float
+  priceSecurityDeposit Float       @default(0)
+  priceCurrency      String          @default("USD")
+  amenities          String[]        @default([])
+  bedrooms           Int
+  bathrooms          Int
+  squareFootage      Int?
+  images             Json?
+  status             String          @default("available")
+  isAvailable        Boolean         @default(true)
+  availableFrom      DateTime?
+  availableUntil     DateTime?
+  minLeaseTerm       Int             @default(1)
+  maxTenants         Int             @default(1)
+  petPolicyAllowed   Boolean         @default(false)
+  petPolicyDetails   String?
+  rules              String[]        @default([])
+  views              Int             @default(0)
+  ratingAverage      Float           @default(0)
+  ratingCount        Int             @default(0)
+  rentalRequests     RentalRequest[]
+  reviews            Review[]
+  payments           Payment[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model RentalRequest {
+  id              String   @id @default(uuid())
+  tenant          User     @relation("TenantRequests", fields: [tenantId], references: [id])
+  tenantId        String
+  property        Property @relation(fields: [propertyId], references: [id])
+  propertyId      String
+  landlord        User     @relation("LandlordRequests", fields: [landlordId], references: [id])
+  landlordId      String
+  moveInDate      DateTime
+  moveOutDate     DateTime
+  numberOfTenants Int
+  message         String?
+  status          String   @default("pending")
+  rejectionReason String?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rentalStartDate DateTime?
+  rentalEndDate   DateTime?
+  monthlyRent     Float
+  securityDeposit Float    @default(0)
+  totalAmount     Float    @default(0)
+  paymentMethod   String?
+  payment         Payment? @relation("RentalRequestPayment")
+  paymentId       String? @unique
+  reviews         Review[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Payment {
+  id                   String          @id @default(uuid())
+  rentalRequest        RentalRequest   @relation("RentalRequestPayment", fields: [rentalRequestId], references: [id])
+  rentalRequestId      String          @unique
+  tenant               User            @relation("PaymentsAsTenant", fields: [tenantId], references: [id])
+  tenantId             String
+  landlord             User            @relation("PaymentsAsLandlord", fields: [landlordId], references: [id])
+  landlordId           String
+  property             Property        @relation(fields: [propertyId], references: [id])
+  propertyId           String
+  amount               Float
+  currency             String
+  method               String
+  provider             String
+  status               String
+  transactionId        String?         @unique
+  stripePaymentIntentId String?
+  sslcommerzSessionId  String?
+  description          String?
+  paidAt               DateTime?
+  receiptUrl           String?
+  failureReason        String?
+  refundDetails        Json?
+  metadata             Json?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+model Review {
+  id                 String   @id @default(uuid())
+  tenant             User     @relation("ReviewsAsTenant", fields: [tenantId], references: [id])
+  tenantId           String
+  property           Property @relation(fields: [propertyId], references: [id])
+  propertyId         String
+  landlord           User     @relation("ReviewsAsLandlord", fields: [landlordId], references: [id])
+  landlordId         String
+  rentalRequest      RentalRequest @relation(fields: [rentalRequestId], references: [id])
+  rentalRequestId    String
+  rating             Int
+  title              String
+  comment            String
+  cleanliness        Int?
+  communication      Int?
+  accuracy           Int?
+  location           Int?
+  amenities          Int?
+  images             String[] @default([])
+  helpfulCount       Int      @default(0)
+  helpfulUsers       String[] @default([])
+  isVerifiedBooking  Boolean  @default(true)
+  isApproved         Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
